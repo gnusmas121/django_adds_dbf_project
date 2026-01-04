@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск{% endblock %}
+
+{% block content %}
+<h1>Страница поиска</h1>
+{% if user.is_authenticated %}
+    <p>Добро пожаловать, {{ user.username }}!</p>
+    {% if user.is_superuser %}
+        <p>Вы администратор. У вас есть доступ к загрузке и админке.</p>
+    {% else %}
+        <p>У вас нет прав администратора.</p>
+    {% endif %}
+{% else %}
+    <p>Вы не авторизованы.</p>
+{% endif %}
+
+<form method="get" id="searchForm">
+    <div class="mb-3">
+        <label for="tableSelect" class="form-label">Выберите таблицу:</label>
+        <select class="form-select" id="tableSelect" name="table">
+            <option value="">-- Выберите таблицу --</option>
+            {% for table in available_tables %}
+                <option value="{{ table }}" {% if selected_table == table %}selected{% endif %}>{{ table }}</option>
+            {% endfor %}
+        </select>
+        <!-- Ссылка для скачивания шаблона -->
+        {% if selected_table %}
+            <a href="{% url 'core:download_search_template' %}?table_name={{ selected_table }}" class="btn btn-outline-secondary btn-sm ms-2" target="_blank">Скачать шаблон Excel</a>
+        {% endif %}
+    </div>
+
+    <!-- Контейнер для полей поиска -->
+    <div id="searchFieldsContainer" style="display: none;">
+        <h3>Поля для поиска</h3>
+        <!-- Поля будут добавляться сюда -->
+    </div>
+
+    <!-- Контейнер для полей вывода -->
+    <div id="resultFieldsContainer" style="display: none;">
+        <h3>Поля для вывода</h3>
+        <!-- Кнопки/селект будут добавляться сюда -->
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="searchButton" style="display: none;">Поиск</button>
+</form>
+
+<!-- Результаты поиска -->
+{% if results %}
+    <h2>Результаты:</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                {% for key in results.0.keys %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in results %}
+                <tr>
+                    {% for value in row.values %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% elif selected_table %}
+    <p>Введите критерии поиска и нажмите "Поиск".</p>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableSelect = document.getElementById('tableSelect');
+    const searchFieldsContainer = document.getElementById('searchFieldsContainer');
+    const resultFieldsContainer = document.getElementById('resultFieldsContainer');
+    const searchButton = document.getElementById('searchButton');
+    const searchForm = document.getElementById('searchForm');
+    const resultsHeader = document.getElementById('resultsHeader');
+
+    // Функция для обновления полей поиска, вывода и заголовков результатов
+    function updateSearchAndResultFields(columns, search_labels, result_labels, search_order, result_order) {
+        // Проверяем, что переданные объекты/массивы определены
+        columns = columns || [];
+        search_labels = search_labels || {};
+        result_labels = result_labels || {};
+        search_order = search_order || columns; // Если порядок не задан, используем все столбцы
+        result_order = result_order || columns;
+
+        // Очищаем контейнеры и заголовки
+        searchFieldsContainer.innerHTML = '';
+        resultFieldsContainer.innerHTML = '';
+        resultsHeader.innerHTML = '';
+
+        if (columns.length > 0) {
+            // --- Поля для поиска ---
+            const searchFieldset = document.createElement('fieldset');
+            searchFieldset.className = 'mb-3';
+            searchFieldset.innerHTML = '<legend>Введите значения для поиска</legend>';
+            const searchRow = document.createElement('div');
+            searchRow.className = 'row';
+
+            search_order.forEach(col => {
+                if (columns.includes(col)) { // Проверяем, что столбец существует в таблице
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-md-2 mb-2';
+                    // Используем подпись из search_labels, или имя столбца, если подписи нет
+                    const label_text = search_labels[col] || col;
+                    colDiv.innerHTML = `
+                        <label for="search_${col}" class="form-label">${label_text}:</label>
+                        <input type="text" class="form-control" id="search_${col}" name="${col}" placeholder="${label_text}" value="">
+                    `;
+                    searchRow.appendChild(colDiv);
+                }
+            });
+            // Кнопка "Поиск"
+            const buttonDiv = document.createElement('div');
+            buttonDiv.className = 'col-md-2 mb-2 d-flex align-items-end';
+            buttonDiv.innerHTML = `<button type="submit" class="btn btn-primary">Поиск</button>`;
+            searchRow.appendChild(buttonDiv);
+
+            searchFieldset.appendChild(searchRow);
+            searchFieldsContainer.appendChild(searchFieldset);
+
+            // --- Поля для вывода ---
+            const resultFieldset = document.createElement('fieldset');
+            resultFieldset.className = 'mb-3';
+            resultFieldset.innerHTML = '<legend>Выберите поля для вывода (Ctrl+Click для множественного выбора)</legend>';
+            const select = document.createElement('select');
+            select.className = 'form-select';
+            select.id = 'resultFieldsSelect';
+            select.name = 'result_fields';
+            select.multiple = true;
+            select.size = Math.min(result_order.length, 10);
+            result_order.forEach(col => {
+                if (columns.includes(col)) { // Проверяем, что столбец существует в таблице
+                    const option = document.createElement('option');
+                    // Используем подпись из result_labels, или имя столбца, если подписи нет
+                    const label_text = result_labels[col] || col;
+                    option.value = col;
+                    option.text = label_text;
+                    select.appendChild(option);
+                }
+            });
+            resultFieldset.appendChild(select);
+            resultFieldsContainer.appendChild(resultFieldset);
+
+            // --- Заголовки результатов (пример, обновляется после поиска) ---
+            // ... (если нужно обновлять заголовки при изменении селекта вывода, добавьте логику) ...
+
+            // Показываем контейнеры и кнопку
+            searchFieldsContainer.style.display = 'block';
+            resultFieldsContainer.style.display = 'block';
+            searchButton.style.display = 'block';
+
+            // Устанавливаем значения из URL, если они есть (только для полей ввода)
+            const urlParams = new URLSearchParams(window.location.search);
+            search_order.forEach(col => {
+                if (columns.includes(col)) {
+                    const input = document.getElementById(`search_${col}`);
+                    if (input) {
+                        input.value = urlParams.get(col) || '';
+                    }
+                }
+            });
+            // Установка выбранных полей вывода
+            const selectedResultFields = urlParams.getAll('result_fields');
+            if (select) {
+                for (let option of select.options) {
+                    if (selectedResultFields.includes(option.value)) {
+                        option.selected = true;
+                    }
+                }
+            }
+
+        } else {
+            // Если столбцов нет, скрываем всё
+            searchFieldsContainer.style.display = 'none';
+            resultFieldsContainer.style.display = 'none';
+            searchButton.style.display = 'none';
+        }
+    }
+
+    // Обработчик изменения выбора таблицы
+    tableSelect.addEventListener('change', function() {
+        const tableName = this.value;
+        if (tableName) {
+            // Отправляем AJAX-запрос
+            fetch(`{% url 'core:get_table_columns' %}?table_name=${encodeURIComponent(tableName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error fetching columns/labels:', data.error);
+                        alert('Ошибка при получении столбцов/подписей: ' + data.error);
+                        // Очищаем поля, передавая пустые значения
+                        updateSearchAndResultFields([], {}, {}, [], []);
+                    } else {
+                        // ПЕРЕДАЁМ данные В ФУНКЦИЮ, ПРЕДВАРИТЕЛЬНО ПРОВЕРИВ ИХ НАЛИЧИЕ
+                        // Используем data.search_labels и data.result_labels, если они есть, иначе пустой объект
+                        const searchLabels = data.search_labels || {};
+                        const resultLabels = data.result_labels || {};
+                        const searchOrder = data.search_order || [];
+                        const resultOrder = data.result_order || [];
+
+                        updateSearchAndResultFields(data.columns, searchLabels, resultLabels, searchOrder, resultOrder);
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    alert('Ошибка при получении столбцов/подписей.');
+                    // Очищаем поля в случае ошибки сети
+                    updateSearchAndResultFields([], {}, {}, [], []);
+                });
+        } else {
+            // Если таблица не выбрана, очищаем поля
+            updateSearchAndResultFields([], {}, {}, [], []);
+        }
+    });
+
+    // Инициализация: если таблица уже выбрана (например, после поиска), загрузить столбцы и подписи
+    if (tableSelect.value) {
+        tableSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+
+{% endblock %}

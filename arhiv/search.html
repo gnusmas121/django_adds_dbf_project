@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск{% endblock %}
+
+{% block content %}
+<h1>Поиск</h1>
+<form method="get" class="mb-4">
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label for="table" class="form-label">Таблица:</label>
+            <select name="table" id="table" class="form-select" onchange="this.form.submit()">
+                <option value="">Выберите таблицу</option>
+                {% for table_name in available_tables %}
+                <option value="{{ table_name }}" {% if selected_table == table_name %}selected{% endif %}>
+                    {{ table_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% if selected_table %}
+    <div class="row">
+        <div class="col-md-2 mb-3">
+            <input type="text" name="field1" class="form-control" placeholder="ФАМИЛИЯ" value="{{ request.GET.field1 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <input type="text" name="field2" class="form-control" placeholder="ИМЯ" value="{{ request.GET.field2 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <input type="text" name="field3" class="form-control" placeholder="ОТЧЕСТВО" value="{{ request.GET.field3 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <input type="text" name="field4" class="form-control" placeholder="ДАТА РОЖДЕНИЯ" value="{{ request.GET.field4 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <input type="text" name="field5" class="form-control" placeholder="ЛИЧНЫЙ НОМЕР" value="{{ request.GET.field5 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <button type="submit" class="btn btn-primary">Поиск</button>
+        </div>
+    </div>
+    {% endif %}
+</form>
+{% if results %}
+    <h2>Результаты поиска в таблице "{{ selected_table }}"</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Поле 1 результата</th>
+                    <th>Поле 2 результата</th>
+                    <th>Поле 3 результата</th>
+                    <th>Поле 4 результата</th>
+                    <th>Поле 5 результата</th>
+                    <th>Поле 6 результата</th>
+                    <th>Поле 7 результата</th>
+                    <th>Поле 8 результата</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results %}
+                <tr>
+                    <td>{{ row.res_col1 }}</td>
+                    <td>{{ row.res_col2 }}</td>
+                    <td>{{ row.res_col3 }}</td>
+                    <td>{{ row.res_col4 }}</td>
+                    <td>{{ row.res_col5 }}</td>
+                    <td>{{ row.res_col6 }}</td>
+                    <td>{{ row.res_col7 }}</td>
+                    <td>{{ row.res_col8 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% elif selected_table and request.GET %}
+    <p>Ничего не найдено в таблице "{{ selected_table }}".</p>
+{% elif not selected_table and available_tables %}
+    <p>Пожалуйста, выберите таблицу для поиска.</p>
+{% elif not available_tables %}
+    <p>Нет доступных таблиц для поиска. Загрузите DBF-файл.</p>
+{% endif %}
+{% endblock %}

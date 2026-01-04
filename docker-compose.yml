@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  webflint:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DB_HOST=172.24.1.139 # IP вашего внешнего контейнера PostgreSQL
+      - DB_NAME=flintdbf      # Имя вашей существующей БД
+      - DB_USER=pgadmin        # Имя пользователя вашей существующей БД
+      - DB_PASSWORD=19rHjkM82 # Пароль пользователя вашей существующей БД
+    # Убираем depends_on, так как база внешняя
+    # depends_on:
+    #   - db
+    # networks:
+    #   - my_postgres_network # Если нужно подключаться к внешней сети
+
+# volumes:
+#   postgres_data # Убираем, так как база внешняя

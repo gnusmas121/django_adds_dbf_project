@@ -1,0 +1,22 @@
+<!-- core/templates/core/upload_dbf.html -->
+{% extends "base.html" %}
+
+{% block title %}Загрузка DBF{% endblock %}
+
+{% block content %}
+<h1>Загрузка DBF-файла</h1>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="id_dbf_file" class="form-label">Выберите DBF файл:</label>
+        <input type="file" class="form-control" id="id_dbf_file" name="dbf_file" accept=".dbf" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Загрузить</button>
+</form>
+
+{% endblock %}

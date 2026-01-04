@@ -1,0 +1,93 @@
+<!-- templates/core/search.html -->
+{% extends "base.html" %}
+
+{% block title %}Поиск{% endblock %}
+
+{% block content %}
+<h1>Поиск</h1>
+
+<form method="get" class="mb-4">
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label for="table" class="form-label">Таблица:</label>
+            <select name="table" id="table" class="form-select" onchange="this.form.submit()">
+                <option value="">Выберите таблицу</option>
+                {% for table_name in available_tables %}
+                <option value="{{ table_name }}" {% if selected_table == table_name %}selected{% endif %}>
+                    {{ table_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% if selected_table %}
+    <div class="row">
+        <!-- ИСПОЛЬЗУЙТЕ РЕАЛЬНЫЕ ИМЕНА СТОЛБЦОВ, УКАЗАННЫЕ В search_fields В views.py -->
+        <div class="col-md-2 mb-3">
+            <input type="text" name="P2" class="form-control" placeholder="P2" value="{{ search_values.P2 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <input type="text" name="ST2" class="form-control" placeholder="ST2" value="{{ search_values.ST2 }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <input type="text" name="DNR" class="form-control" placeholder="DNR" value="{{ search_values.DNR }}">
+        </div>
+        <div class="col-md-2 mb-3">
+            <button type="submit" class="btn btn-primary">Поиск</button>
+        </div>
+    </div>
+    {% endif %}
+</form>
+
+{% if results %}
+    <h2>Результаты поиска в таблице "{{ selected_table }}"</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <!-- ИСПОЛЬЗУЙТЕ РЕАЛЬНЫЕ ИМЕНА СТОЛБЦОВ, УКАЗАННЫЕ В result_fields В views.py -->
+                    <th>P1</th>
+                    <th>ST2</th>
+                    <th>DNR</th>
+                    <th>Код</th>
+                    <th>Имя</th>
+                    <th>Дата</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                    <th>Описание 1</th>
+                    <th>Описание 2</th>
+                    <th>Описание 3</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results %}
+                <tr>
+                    <!-- ИСПОЛЬЗУЙТЕ РЕАЛЬНЫЕ КЛЮЧИ ИЗ row, СООТВЕТСТВУЮЩИЕ result_fields -->
+                    <td>{{ row.P1 }}</td>
+                    <td>{{ row.ST2 }}</td>
+                    <td>{{ row.DNR }}</td>
+                    <td>{{ row.KOD }}</td>
+                    <td>{{ row.NAME }}</td>
+                    <td>{{ row.DATE }}</td>
+                    <td>{{ row.AMOUNT }}</td>
+                    <td>{{ row.STATUS }}</td>
+                    <td>{{ row.DESCR1 }}</td>
+                    <td>{{ row.DESCR2 }}</td>
+                    <td>{{ row.DESCR3 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% elif selected_table and request.GET %}
+    <p>Ничего не найдено в таблице "{{ selected_table }}" по указанным критериям.</p>
+{% elif selected_table %}
+    <p>Выбрана таблица "{{ selected_table }}". Введите критерии поиска и нажмите "Поиск".</p>
+{% elif not selected_table and available_tables %}
+    <p>Пожалуйста, выберите таблицу для поиска.</p>
+{% elif not available_tables %}
+    <p>Нет доступных таблиц для поиска. Загрузите DBF-файл.</p>
+{% endif %}
+
+{% endblock %}

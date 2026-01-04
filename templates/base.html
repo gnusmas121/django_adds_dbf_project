@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Мой Django Проект{% endblock %}</title>
+    {% load static %}
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet"> rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar: 20% ширины, слева -->
+            <div class="col-2 p-3 text-bg-dark" style="height: 100vh; position: fixed;">
+                <h3>Меню</h3>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:search' %}">Поиск</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:upload_dbf' %}">Загрузить DBF</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:upload_excel' %}">Загрузить EXCEL</a>
+                    </li>
+                     {% if user.is_superuser %}
+                    <li class="nav-item">
+                    <a class="nav-link text-white {% if request.resolver_match.url_name == 'core:manage_table_template' %}active{% endif %}" href="{% url 'core:manage_table_template' %}">Управление шаблонами</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'admin:index' %}">Админка</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'logout' %}">Выйти ({{ user.username }})</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- Основной контент: 80% ширины, справа от sidebar -->
+            <main class="col-10 ms-auto p-3">
+                {% block content %}
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

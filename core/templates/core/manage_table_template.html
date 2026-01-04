@@ -1,0 +1,174 @@
+<!-- core/templates/core/manage_table_template.html -->
+{% extends "base.html" %}
+
+{% block title %}Управление шаблоном таблицы{% endblock %}
+
+{% block content %}
+<h1>Управление шаблоном таблицы</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<form method="get" id="selectTableForm">
+    <div class="mb-3">
+        <label for="tableSelect" class="form-label">Выберите таблицу:</label>
+        <select class="form-select" id="tableSelect" name="table_name" onchange="this.form.submit()">
+            <option value="">-- Выберите таблицу --</option>
+            {% for table in available_tables %}
+                <option value="{{ table }}" {% if selected_table == table %}selected{% endif %}>{{ table }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+
+{% if selected_table %}
+    <h3>Настройка шаблона для: {{ selected_table }}</h3>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="table_name" value="{{ selected_table }}">
+
+        <h4>Поля для поиска</h4>
+        <div id="searchFieldsContainer">
+            <!-- Поля для поиска будут добавляться сюда -->
+            {% for config in existing_configs %}
+                {% if config.template_type == 'search' %}
+                    {% comment %} Генерируем уникальный ID на основе существующего имени поля и времени {% endcomment %}
+                    {% with unique_id=config.field_name|add:config.id|stringformat:"s" %}
+                    <div class="row mb-2 search-field-row">
+                        <div class="col-md-5">
+                            <select class="form-select field-select" name="search_select_{{ unique_id }}" required>
+                                <option value="">-- Выберите поле --</option>
+                                {% for col in table_columns %}
+                                    <option value="{{ col }}" {% if config.field_name == col %}selected{% endif %}>{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control field-label" name="search_label_{{ unique_id }}" value="{{ config.field_label }}" placeholder="Введите подпись" required>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm remove-field-btn">-</button>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endif %}
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-success btn-sm mb-3" id="addSearchFieldBtn">+</button>
+
+        <h4>Поля для вывода</h4>
+        <div id="resultFieldsContainer">
+            <!-- Поля для вывода будут добавляться сюда -->
+            {% for config in existing_configs %}
+                {% if config.template_type == 'result' %}
+                    {% comment %} Генерируем уникальный ID на основе существующего имени поля и времени {% endcomment %}
+                    {% with unique_id=config.field_name|add:config.id|stringformat:"s" %}
+                    <div class="row mb-2 result-field-row">
+                        <div class="col-md-5">
+                            <select class="form-select field-select" name="result_select_{{ unique_id }}" required>
+                                <option value="">-- Выберите поле --</option>
+                                {% for col in table_columns %}
+                                    <option value="{{ col }}" {% if config.field_name == col %}selected{% endif %}>{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control field-label" name="result_label_{{ unique_id }}" value="{{ config.field_label }}" placeholder="Введите подпись" required>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm remove-field-btn">-</button>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endif %}
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-success btn-sm mb-3" id="addResultFieldBtn">+</button>
+
+        <button type="submit" class="btn btn-primary">Сохранить шаблон</button>
+        <a href="{% url 'core:manage_table_template' %}" class="btn btn-secondary">Отмена</a>
+    </form>
+
+    <script>
+    // Функция для создания новой строки поля
+    function createFieldRow(containerId, type) {
+        const container = document.getElementById(containerId);
+        const newRow = document.createElement('div');
+        newRow.className = `row mb-2 ${type}-field-row`;
+
+        // Генерируем уникальный ID
+        const uniqueId = Date.now() + Math.random().toString(36).substr(2, 9);
+
+        newRow.innerHTML = `
+            <div class="col-md-5">
+                <select class="form-select field-select" name="${type}_select_${uniqueId}" required>
+                    <option value="">-- Выберите поле --</option>
+                    {% for col in table_columns %}
+                        <option value="{{ col }}">{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="text" class="form-control field-label" name="${type}_label_${uniqueId}" placeholder="Введите подпись" required>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger btn-sm remove-field-btn">-</button>
+            </div>
+        `;
+        container.appendChild(newRow);
+    }
+
+    // Обработчик для кнопки "Добавить поле поиска"
+    document.getElementById('addSearchFieldBtn').addEventListener('click', function() {
+        createFieldRow('searchFieldsContainer', 'search');
+    });
+
+    // Обработчик для кнопки "Добавить поле вывода"
+    document.getElementById('addResultFieldBtn').addEventListener('click', function() {
+        createFieldRow('resultFieldsContainer', 'result');
+    });
+
+    // Делегированный обработчик для кнопок "Удалить"
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-field-btn')) {
+            const row = e.target.closest('.search-field-row, .result-field-row');
+            if (row) {
+                row.remove();
+            }
+        }
+    });
+
+    // Опционально: Предотвращение выбора одного и того же поля дважды в одном списке
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('field-select')) {
+            const selectedValue = e.target.value;
+            if (selectedValue === '') return; // Не проверяем пустой выбор
+            const container = e.target.closest('#searchFieldsContainer, #resultFieldsContainer');
+            if (container) {
+                const allSelects = container.querySelectorAll('.field-select');
+                let count = 0;
+                allSelects.forEach(select => {
+                    if (select !== e.target && select.value === selectedValue) {
+                        count++;
+                    }
+                });
+                if (count > 0) {
+                    alert(`Поле "${selectedValue}" уже выбрано.`);
+                    e.target.value = ''; // Сбрасываем выбор
+                }
+            }
+        }
+    });
+
+    </script>
+{% else %}
+    <p>Пожалуйста, выберите таблицу.</p>
+{% endif %}
+
+{% endblock %}
